@@ -2,7 +2,7 @@
 
 ## What?
 
-[Mustache](http://github.com/defunkt/mustache "Mustache") is a logic-free templating language
+[Mustache](http://mustache.github.com/ "Mustache") is a logic-free templating language
 
 ## Why?
 
