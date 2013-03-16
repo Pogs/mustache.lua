@@ -83,7 +83,6 @@ local get_variable =
 		return callable(tmp) and tmp() or tmp or ''
 	end
 
-
 local is_dict =
 	function (t)
 		if type(t) ~= 'table' then
@@ -171,6 +170,9 @@ render_sections =
 
 						-- handle callable objects
 						elseif callable(x) then
+							-- expand tags within before calling the section value
+							content = render(content, env)
+
 							local tmp = x(content)
 
 							if type(tmp) == 'string' then
@@ -193,7 +195,7 @@ render_sections =
 						-- boolean-false and all other object types replace with nothing
 
 					else -- tagmod == '^'
-						if not x or (type(x) == 'table' and #x == 0 and not is_dict(x)) then
+						if not x or (type(x) == 'table' and #x == 0) then
 							replacement = content
 						end
 					end
@@ -205,12 +207,28 @@ render_sections =
 			)
 	end
 
+local read_all =
+	function (path)
+		local tmp, err = assert(io.open(path))
+
+		if tmp then
+			local text = tmp:read('*a')
+			io.close(tmp)
+
+			return text
+		end
+
+		return tmp, err
+	end
+
 render =
-	function (template, env)
+	function (template, env, partials)
+		env      = env      or _ENV
+		partials = partials or {}
+
 	    debug('[debug]', 'render called')
 		debug('[debug]', 'template = ', "'", template, "'")
 
-		env = env or {}
 
 		template = render_sections(template, env)
 		template = render_tags    (template, env)
@@ -219,14 +237,14 @@ render =
 	end
 
 renderfile =
-	function (filename, env)
-		local tmp = assert(io.open(filename))
+	function (path, env)
+		local text, err = read_all(path)
 
-		local text = tmp:read('*a')
-
-		io.close(tmp)
-
-		return render(text, env)
+		if text then
+			return render(text, env)
+		end
+			
+		return text, err
 	end
 
 return _ENV

@@ -3,33 +3,96 @@ package.path = './?.lua;' .. package.path
 local mustache = require "mustache"
 
 local tests =
-{
-    { tem = "{{ foo }}",                                     env = { foo = "foo" },                                                      correct = "foo" },
-    { tem = "{{ one }} != {{ two }}",                        env = { one = 1, two = 2 },                                                 correct = "1 != 2" },
-    { tem = "fn call: {{ foo }}",                            env = { foo = function() return "return" end },                             correct = "fn call: return" },  
-    { tem = "no tag",                                        env = { },                                                                  correct = "no tag" }, 
-    { tem = "no whitespace {{foo}}",                         env = { foo = "works" },                                                    correct = "no whitespace works" },
-    { tem = "a comment {{! this is invisible }}",            env = { },                                                                  correct = "a comment " },
-    { tem = "escaped: '{{ esc }}', unescaped: '{{& esc }}'", env = { esc = "&" },                                                        correct = "escaped: '&amp;', unescaped: '&'" },
-    { tem = "{{#list}} name = {{ name }} {{/list}}",         env = { list = { { name = "foo" }, { name = "bar" }, { name = "quux" } } }, correct = " name = foo  name = bar  name = quux " },
-    { tem = "{{ #bool }} maybe shown {{ /bool }}",           env = { bool = true },                                                      correct = " maybe shown " },
-    { tem = "{{ #list }} item: {{ foo }} {{ /list }}",       env = { list = { } },                                                       correct = "" },
-    { tem = "{{ ^list }} list is empty! {{ /list }}",        env = { list = { } },                                                       correct = " list is empty! " },
-    { tem = "{{ ^foo }} must be false {{ /foo }}",           env = { foo = false },                                                      correct = " must be false " },
-    { tem = "{{ #person }} name = {{ name }} {{ /person }}", env = { person = { name = "john" } },                                       correct = " name = john " },
-    { tem = "{{#list}} name = {{ . }} {{/list}}",            env = { list = { "foo", "bar", "quux" } },                                  correct = " name = foo  name = bar  name = quux " },
-
--- Add nested section test
--- Add "lambda/wrapped" test
--- Add multiline tests
-}
+	{
+		-- test 1: normal replacement
+		{
+			tem = '{{x}}',
+			env = { x = 'y' },
+			res = 'y'
+		},
+		-- test 2: multiple normal replacement
+		{
+			tem = '{{x}} < {{y}}',
+			env = { x = 1,  y = 2 },
+			res = '1 < 2'
+		},
+		-- test 3: call replacement
+		{
+			tem = '{{f}}',
+			env = { f = function () return 'function' end },
+			res = 'function'
+		},
+		-- test 4: no-op
+		{
+			tem = 'nothing to replace',
+			env = { 1, 2, 3, cat = 'dog' },
+			res = 'nothing to replace'
+		},
+		-- test 5: comments
+		{
+			tem = 'this is a {{! comment }}',
+			env = {},
+			res = 'this is a '
+		},
+		-- test 6: raw + escaped specials
+		{
+			tem = '{{specials}} | {{{specials}}} | {{&specials}}',
+			env = { specials = '&<>' },
+			res = '&amp;&lt;&gt; | &<> | &<>',
+		},
+		-- test 7: dictionary
+		{
+			tem = '{{#dict}}{{a}} + {{b}} = {{c}}{{/dict}}',
+			env = { dict = { a = 1, b = 2, c = 3 } },
+			res = '1 + 2 = 3'
+		},
+		-- test 7: non-empty list
+		{
+			tem = '{{#list}}fuzz = {{item}}, {{/list}}',
+			env = { list = { { item = 'cat'}, { item = 'dog' }, { item = 'mouse' }, { item = 'horse' } } },
+			res = 'fuzz = cat, fuzz = dog, fuzz = mouse, fuzz = horse, '
+		},
+		-- test 8: empty list
+		{
+			tem = '{{^list}}there are no items!{{/list}}',
+			env = { list = {} },
+			res = 'there are no items!'
+		},
+		-- test 9: nil replacement
+		{
+			tem = '{{#blah}}cat{{/blah}}{{^blah}}dog{{/blah}}',
+			env = {},
+			res = 'dog'
+		},
+		-- test 10: false replacement
+		{
+			tem = '{{#blah}}cat{{/blah}}{{^blah}}dog{{/blah}}',
+			env = { blah = false },
+			res = 'dog'
+		},
+		-- test 11: {{ . }}
+		{
+			tem = '{{#musketeers}}{{ . }} {{/musketeers}}',
+			env = { musketeers = { 'Athos', 'Aramis', 'Porthos', "D'Artagnan" } },
+			res = "Athos Aramis Porthos D'Artagnan "
+		},
+		-- test 12: replacement in same env as call
+		{
+			tem = '{{#bold}}{{text}}{{/bold}}',
+			env = { bold = function (s) return string.format('<b>%s</b>', s) end, text = 'hello world!' },
+			res = '<b>hello world!</b>'
+		}
+		-- Add nested section test
+		-- Add "lambda/wrapped" test
+		-- Add multiline tests
+	}
 
 for i, v in ipairs(tests) do
     print("\n== TEST: " .. i .. " ==")
     print("template =", "'" .. v.tem .. "'")
     local ret = mustache.render(v.tem, v.env)
     print("render   =", "'" .. ret .. "'")
-    assert(ret == v.correct)
+    assert(ret == v.res)
 end
 
 print("\n--> All tests passed")
