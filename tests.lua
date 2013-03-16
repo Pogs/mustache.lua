@@ -1,3 +1,5 @@
+package.path = './?.lua;' .. package.path
+
 local mustache = require "mustache"
 
 local tests =
