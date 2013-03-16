@@ -15,18 +15,12 @@ _ENV = setmetatable({}, { __index = _G })
 local otag = '{{'
 local ctag = '}}'
 
--- "Names (also called identifiers) in Lua can be any string of letters, digits, and underscores,
--- not beginning with a digit. Identifiers are used to name variables, table fields, and labels."
--- ^ extended to v to also match {{ . }} and {{ ! this is a comment }}
-local identifier = '[%a_%.][%g_ ]-'
-local mods       = '&!=>'
-
 -- tag modifiers: '&'=no escape, '!'=comment, '{'=no escape
 -- not implemented: '='=change delimiter, '>'=partials
-local tag_pattern = '(' .. otag .. '%s*([{' .. mods .. ']?)%s*(' .. identifier .. ')%s*}?' .. ctag .. ')'
+local tag_pattern = '(' .. otag .. '%s*([{&!=>]?)%s*([^}]-)%s*}?' .. ctag .. ')'
 
 -- sect modifiers: '#'=open, '/'=close, '^'=invert
-local sect_pattern = '(' .. otag .. '%s*([#^])%s*(' .. identifier .. ')%s*}?' .. ctag ..  '(.-)' ..  otag .. '%s*/%s*%3%s*}?' .. ctag ..')'
+local sect_pattern = '(' .. otag .. '%s*([#^])%s*([^}]-)%s*}?' .. ctag ..  '(.-)' ..  otag .. '%s*/%s*%3%s*}?' .. ctag ..')'
 
 --------------------
 -- util functions --
