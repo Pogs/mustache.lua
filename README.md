@@ -1,29 +1,52 @@
-mustache.lua
-============
+# {{ mustache.lua }}
 
-What?
------
+## What?
 
 [Mustache](http://github.com/defunkt/mustache "Mustache") is a logic-free templating language
 
-Why?
------
+## Why?
 
 BECAUSE MUSTACHES! >:{
 
-Status
-------
-	- [x] {{normal_tags}}
-	- [x] {{{unescaped}}} {{&tags}}
-	- [x] {{! comment tags }}
-	- [x] {{^inverted_sections}}
-	- [ ] {{>partials}}
-	- [ ] {{= =}} (set delimeters)
-	- [x] {{ . }}
-	- [x] Dictionaries
-	- [x] Lists
-	- [x] Lambdas
-	- [x] Booleans
-	- [ ] Use Defunkt's Mustache examples for tests
+## Status
 
-    Run 'lua tests.lua' to see examples that work
+### Done
+- {{normal_tags}}
+- {{{unescaped}}} {{&tags}}
+- {{! comment tags }}
+- {{^inverted_sections}}
+- {{ . }}
+- Dictionaries
+- Lists
+- Lambdas
+- Boolean-True
+- Nil/False/Empty-List
+
+### Todo
+- {{>partials}}
+- {{= =}} (set delimeters)
+- Use Defunkt's Mustache examples for tests
+
+## Usage
+
+Running the included tests:
+```bash
+ lua tests.lua
+```
+
+Rendering a template string:
+```lua
+	local mustache = require('mustache')
+
+	local template = 'hello {{thing}}!'
+	local env = { thing = 'world' }
+
+	print(mustache.render(template, env))
+```
+
+Rendering a template file:
+```lua
+	local mustache = require('mustache')
+
+	print(mustache.renderfile('example.mustache'))
+```
