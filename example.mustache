@@ -4,23 +4,25 @@ This is a test of {{ template_engine }}.
 {{ #details }}
 To render a string, use {{ string_fn }}.
 To render a file, use {{ file_fn }}.
-
 {{ /details }}
 
-List of numbers:
-    {{ #numbers }}
-    * {{ num }}
-    * {{ num }}
-    * {{ num }}
-    {{ /numbers }}
+{{ ^nothing }}
+	Printed because this value doesn't exist
+{{ /nothing }}
 
-    {{ ^numbers }}
-    * No numbers to display.
-    {{ /numbers }}
+List of numbers:
+	{{ #numbers }}
+	* {{ num }}
+	{{ /numbers }}
+	{{ ^numbers }}
+	* No numbers to display.
+	{{ /numbers }}
+
+	Some letters: {{ #letters }}{{ . }} {{ /letters }}
 
 {{ #done }}
-    mustache.lua is completely done.
+mustache.lua is completely done.
 {{ /done }}
 {{ ^done }}
-    mustache.lua is still being worked on.
+mustache.lua is still being worked on.
 {{ /done }}

@@ -4,203 +4,235 @@
 -- external function: render(template, environment)
 --
 
-module(..., package.seeall);
-
 DEBUG = false
---DEBUG = true
 
+_ENV = setmetatable({}, { __index = _G })
 
 ---------------------
 -- pattern section --
 ---------------------
 
-otag = "{{"
-ctag = "}}"
+local otag = '{{'
+local ctag = '}}'
+
+-- "Names (also called identifiers) in Lua can be any string of letters, digits, and underscores,
+-- not beginning with a digit. Identifiers are used to name variables, table fields, and labels."
+-- ^ extended to v to also match {{ . }} and {{ ! this is a comment }}
+local identifier = '[%a_%.][%g_ ]-'
+local mods       = '&!=>'
 
 -- tag modifiers: '&'=no escape, '!'=comment, '{'=no escape
 -- not implemented: '='=change delimiter, '>'=partials
-tag_pattern = "(" .. otag .. "%s*([&!{=>]?)%s*([^}]+)%s*}?" .. ctag .. ")"
+local tag_pattern = '(' .. otag .. '%s*([{' .. mods .. ']?)%s*(' .. identifier .. ')%s*}?' .. ctag .. ')'
 
 -- sect modifiers: '#'=open, '/'=close, '^'=invert
-sect_pattern = "(" .. otag .. "%s*([#^])%s*([^}]+)%s*}?" .. ctag ..  "(%s*.*%s*)" .. 
-               otag .. "%s*/%s*[^}]+%s*}?" .. ctag ..")"
-
+local sect_pattern = '(' .. otag .. '%s*([#^])%s*(' .. identifier .. ')%s*}?' .. ctag ..  '(.-)' ..  otag .. '%s*/%s*%3%s*}?' .. ctag ..')'
 
 --------------------
 -- util functions --
 --------------------
 
 -- print debug messages
-local function debug(...) if DEBUG then print(...) end end
+local debug =
+	function (prefix, ...)
+		if DEBUG then
+			local cout = io.output()
 
--- remove whitespace at the beginning and end of a string
-local function trim(s) return (s:gsub("^%s*(.-)%s*$", "%1")) end
+			cout:write(prefix, '\t', ...)
+			cout:write('\r\n')
+		end
+	end
 
 -- escape characters '&', '>' and '<' for HTML
-local function escape(s)
-    if type(s) ~= 'string' then return s end
-    return (s:gsub('&', '&amp;'):gsub('>', '&gt;'):gsub('<', '&lt;'))
-end
+local escape =
+	function (s)
+		if type(s) ~= 'string' then return s end
+
+		return
+			s:gsub
+			(
+				'[&<>]',
+				{
+					['&'] = '&amp;',
+					['<'] = '&lt;',
+					['>'] = '&gt;'
+				}
+			)
+	end
+
+local callable =
+	function (x)
+		local tmp = type(x)
+
+		if tmp == 'function' then
+			return true
+		end
+
+		tmp = getmetatable(tmp)
+
+		if tmp and tmp.__call then
+			return true
+		end
+
+		return false
+	end
 
 -- finds a tag in an environment; functions are called
-local function get_variable(tag, env)
-    if type(env[tag]) == 'function' then return env[tag]() end
-    if env[tag] ~= nil              then return env[tag]   end
-    return ''
-end
+local get_variable =
+	function (tag, env)
+		if tag == '.' then
+			return env
+		end
 
--- determine if a table is being used as a dictionary
---   - somewhat hackish, but if a table has any numeric keys it is
---     determined to not be a dictionary
---   - a table with no keys at all is not considered a dictionary
-function is_dict(t)
-    if type(t) ~= 'table' then return false end
-    keycount = 0
-    for k, v in pairs(t) do
-        keycount = keycount + 1
-        if type(k) == 'number' then return false end
-    end
-    if keycount == 0 then return false end
-    return true
-end
+		local tmp = env[tag]
 
+		return callable(tmp) and tmp() or tmp or ''
+	end
+
+
+local is_dict =
+	function (t)
+		if type(t) ~= 'table' then
+			return false
+		end
+
+		for k in pairs(t) do
+			if type(k) ~= 'number' then
+				return true
+			end
+		end
+
+		return false
+	end
 
 -----------------------------
 -- tag rendering functions --
 -----------------------------
 
-function render_normal(tag, env)
-    debug("[debug]", "normal tag found")
-    return escape(get_variable(tag, env))
-end
+local render_normal       = function (tag, env) debug('[debug]',                       'normal tag found') return escape(get_variable(tag, env)) end
+local render_comment      = function (tag, env) debug('[debug]',                      'comment tag found') return ''                             end
+local render_unescaped    = function (tag, env) debug('[debug]',                    'unescaped tag found') return get_variable(tag, env)         end
+local render_partial      = function (tag, env) debug('[debug-error]',         'partials not implemented') return ''                             end
+local render_change_delim = function (tag, env) debug('[debug-error]', 'change delimiter not implemented') return ''                             end
 
-local function render_comment(tag, env)
-    debug("[debug]", "comment tag found")
-    return ''
-end
-
-local function render_unescaped(tag, env)
-    debug("[debug]", "unescaped tag found")
-    return get_variable(tag, env)
-end
-
-local function render_partial(tag, env)
-    debug("[debug-error]", "partials not implemented")
-    return ''
-end
-
-local function render_change_delim(tag, env)
-    debug("[debug-error]", "change delimiter not implemented")
-    return ''
-end
-
-modifiers = { [""]  = render_normal
-            , ["!"] = render_comment
-            , ["&"] = render_unescaped
-            , ["{"] = render_unescaped
-            , [">"] = render_partial
-            , ["="] = render_change_delim
+local modifiers =
+{
+	['' ] = render_normal,
+	['!'] = render_comment,
+	['&'] = render_unescaped,
+	['{'] = render_unescaped,
+	['>'] = render_partial,
+	['='] = render_change_delim
 }
 
 ---------------------------------
 -- overall rendering functions --
 ---------------------------------
 
-local function render_tags(template, env)
-    while true do
-        local _, _, tag, tagmod, tagname = template:find(tag_pattern)
+local render_tags =
+	function (template, env)
+		return
+			template:gsub
+			(
+				tag_pattern,
+				function (tag, tagmod, tagname)
+					debug('[debug-loop]', 'template = ', "'", template, "'")
+					debug('[debug-loop]', 'tag      = ', "'", tag,      "'")
+					debug('[debug-loop]', 'tagmod   = ', "'", tagmod,   "'")
+					debug('[debug-loop]', 'tagname  = ', "'", tagname,  "'")
 
-        -- break if we haven't found any tags
-        if _ == nil then break end
-        tagname = trim(tagname)
+					local replacement = modifiers[tagmod](tagname, env)
 
-        debug("[debug-loop]", "template = ", "'"..template.."'")
-        debug("[debug-loop]", "tag      = ", "'"..tag.."'")
-        debug("[debug-loop]", "tagmod   = ", "'"..tagmod.."'")
-        debug("[debug-loop]", "tagname  = ", "'"..tagname.."'")
+					debug("[debug-loop]", 'replace  = ', "'", replacement, "'")
+				
+					return replacement
+				end
+			)
+	end
 
-        replacement = modifiers[tagmod](tagname, env)
-        debug("[debug-loop]", "replace  = ", "'"..replacement.."'")
-        template = template:gsub(tag, replacement)
-    end
-    return template
-end
+local render_sections = nil
 
-local function render_sections(template, env)
-    while true do
-        local _, _, tag, tagmod, tagname, content = template:find(sect_pattern)
+render_sections =
+	function (template, env)
+		return
+			template:gsub
+			(
+				sect_pattern,
+				function (tag, tagmod, tagname, content)
+					debug('[debug-loop]', 'template = ', "'", template, "'")
+					debug('[debug-loop]', 'tag      = ', "'", tag,      "'")
+					debug('[debug-loop]', 'tagmod   = ', "'", tagmod,   "'")
+					debug('[debug-loop]', 'tagname  = ', "'", tagname,  "'")
+					debug('[debug-loop]', 'content  = ', "'", content,  "'")
 
-        if _ == nil then break end
-        tagname = trim(tagname)
-        tagmod = trim(tagmod)
+					content = content:gsub('^\r?\n%s*', '')
 
-        debug("[debug-loop]", "template = ", "'"..template.."'")
-        debug("[debug-loop]", "tag      = ", "'"..tag.."'")
-        debug("[debug-loop]", "tagmod   = ", "'"..tagmod.."'")
-        debug("[debug-loop]", "tagname  = ", "'"..tagname.."'")
-        debug("[debug-loop]", "content  = ", "'"..content.."'")
+			        local x = env[tagname]
+			        local replacement = ''
 
-        val = env[tagname]
-        replacement = ''
+					if tagmod == '#' then
+						-- handle boolean-true
+						if x == true then
+							replacement = content
 
-        -- handle false values and tag not found
-        if val == nil or val == false then
-            debug("[debug-sect]", "found: ", "nil or false value")
-            if tagmod == '^' then replacement = content
-            else replacement = '' end
-        -- handle non empty lists
-        elseif type(val) == 'table' and #val ~= 0 then
-            debug("[debug-sect]", "found: ", "non-empty list found")
-            filler = {}
-            for i, v in ipairs(val) do
-                debug("[debug-sect]", "rendering: ", v)
-                table.insert(filler, render(content, v))
-            end
-            replacement = table.concat(filler)
-        -- handle dictionaries
-        elseif type(val) == 'table' and is_dict(val) then
-            debug("[debug-sect]", "found: ", "dictionary found")
-            replacement = render(content, val)
-        -- handle empty lists
-        elseif type(val) == 'table' and #val == 0 and not is_dict(val) then
-            debug("[debug-sect]", "found: ", "empty list found")
-            if tagmod == '^' then replacement = content
-            else replacement = '' end
-        -- handle lambdas / wrappers
-        elseif type(val) == 'function' then
-            debug("[debug-sect]", "found: ", "function found")
-            replacement = val(content)
-        -- handle other non-false values
-        elseif val then
-            debug("[debug-sect]", "found: ", "other value found")
-            if tagmod == '^' then replacement = ''
-            else replacement = content end
-        end
+						-- handle callable objects
+						elseif callable(x) then
+							local tmp = x(content)
+
+							if type(tmp) == 'string' then
+								replacement = tmp
+							end
+
+						-- handle tables
+						elseif type(x) == 'table' then
+							-- we need to treat every #section as if it has an
+							-- associated array of environments to go with it
+							if is_dict(x) then
+								x = { x }
+							end
+
+							for _, sub_env in ipairs(x) do
+								replacement = replacement .. render(content, sub_env)
+							end
+						end
+
+						-- boolean-false and all other object types replace with nothing
+
+					else -- tagmod == '^'
+						if not x or (type(x) == 'table' and #x == 0 and not is_dict(x)) then
+							replacement = content
+						end
+					end
     
-        debug("[debug-loop]", "replace  = ", "'"..replacement.."'")
+					debug('[debug-loop]', 'replace  = ', "'", replacement, "'")
 
-        template = template:gsub(tag, replacement)
-        break
-    end
-    return template
-end
+					return replacement:gsub('\r?\n%s*$', '')
+				end
+			)
+	end
 
-function render(template, env)
-    debug("[debug]", "render called")
-    debug("[debug]", "template = ", "'"..template.."'")
-    env = env or {}
+render =
+	function (template, env)
+	    debug('[debug]', 'render called')
+		debug('[debug]', 'template = ', "'", template, "'")
 
-    template = render_sections(template, env)
-    template = render_tags(template, env)
+		env = env or {}
 
-    return template
-end
+		template = render_sections(template, env)
+		template = render_tags    (template, env)
 
-function renderfile(filename, env)
-    require "io"
-    lines = {}
-    for line in io.open(filename, "r"):lines() do
-        table.insert(lines, line)
-    end
-    return render(table.concat(lines, '\n'), env)
-end
+		return template
+	end
+
+renderfile =
+	function (filename, env)
+		local tmp = assert(io.open(filename))
+
+		local text = tmp:read('*a')
+
+		io.close(tmp)
+
+		return render(text, env)
+	end
+
+return _ENV
