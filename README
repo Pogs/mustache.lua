@@ -1,33 +1,29 @@
+mustache.lua
+============
 
-=== mustache.lua ===
+What?
+-----
 
+[Mustache](http://github.com/defunkt/mustache "Mustache") is a logic-free templating language
 
-= What?
-    - Mustache is a logic free template language
-    - Based on github.com/defunkt/mustache
+Why?
+-----
 
-= Why?
-    - To learn Lua (I'm new to it, let me know if something is not Lua-esque)
-    - Also, didn't see github.com/nrk/hige
+BECAUSE MUSTACHES! >:{
 
-= Status
-    - Mostly complete, issues remain though.
-    - Working:
-        - Normal tags
-        - Unescaped tags
-        - Comment tags
-        - Inverted sections
-        - Wrappers
-        - Dictionaries
-        - Lists of key/value pairs
-        - Empty lists
-        - Booleans
-    - Run 'lua tests.lua' to see examples that work
+Status
+------
+	- [x] {{normal_tags}}
+	- [x] {{{unescaped}}} {{&tags}}
+	- [x] {{! comment tags }}
+	- [x] {{^inverted_sections}}
+	- [ ] {{>partials}}
+	- [ ] {{= =}} (set delimeters)
+	- [x] {{ . }}
+	- [x] Dictionaries
+	- [x] Lists
+	- [x] Lambdas
+	- [x] Booleans
+	- [ ] Use Defunkt's Mustache examples for tests
 
-= Todo
-    - Rendering to and from files
-        - In progress, but currently example.mustache and example.lua don't work.
-    - Iteration as in mustache.js, with {{ . }}
-    - Test fully on examples on Defunkt's Mustache docs
-    - Remove debug statements
-    - Find any other scoping problems (add local?)
+    Run 'lua tests.lua' to see examples that work
