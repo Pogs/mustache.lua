@@ -22,6 +22,9 @@ BECAUSE MUSTACHES! >:{
 - Boolean-True
 - Nil/False/Empty-List
 
+### Extensions
+- {{~section}}once-only even if list{{/section}}
+
 ### Todo
 - {{>partials}}
 - {{= =}} (set delimeters)
