@@ -20,7 +20,7 @@ local ctag = '}}'
 local tag_pattern = '(' .. otag .. '%s*([{&!=>]?)%s*([^}]-)%s*}?' .. ctag .. ')'
 
 -- sect modifiers: '#'=open, '/'=close, '^'=invert
-local sect_pattern = '(' .. otag .. '%s*([#^])%s*([^}]-)%s*}?' .. ctag ..  '(.-)' ..  otag .. '%s*/%s*%3%s*}?' .. ctag ..')'
+local sect_pattern = '(' .. otag .. '%s*([#^])%s*([^}]-)%s*' .. ctag ..  '(.-)' ..  otag .. '%s*/%s*%3%s*' .. ctag ..')'
 
 --------------------
 -- util functions --
