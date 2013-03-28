@@ -81,9 +81,19 @@ local tests =
 			tem = '{{#bold}}{{text}}{{/bold}}',
 			env = { bold = function (s) return string.format('<b>%s</b>', s) end, text = 'hello world!' },
 			res = '<b>hello world!</b>'
+		},
+		-- test 13: render-once for "truth value"
+		{
+			tem = '{{~someval}}yes!{{/someval}}',
+			env = { someval = { 'a', 'b', 'c' } },
+			res = 'yes!'
+		},
+		-- test 14: nested section test
+		{
+			tem = '{{#x}}{{cat}}{{#y}}{{dog}}{{/y}}{{/x}}',
+			env = { x = { cat = 'mouse', y = { dog = 'horse' } } },
+			res = 'mousehorse'
 		}
-		-- Add nested section test
-		-- Add "lambda/wrapped" test
 		-- Add multiline tests
 	}
 

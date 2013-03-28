@@ -20,7 +20,7 @@ local ctag = '}}'
 local tag_pattern = '(' .. otag .. '%s*([{&!=>]?)%s*([^}]-)%s*}?' .. ctag .. ')'
 
 -- sect modifiers: '#'=open, '/'=close, '^'=invert
-local sect_pattern = '(' .. otag .. '%s*([#^])%s*([^}]-)%s*' .. ctag ..  '(.-)' ..  otag .. '%s*/%s*%3%s*' .. ctag ..')'
+local sect_pattern = '(' .. otag .. '%s*([~#^])%s*([^}]-)%s*' .. ctag ..  '(.-)' ..  otag .. '%s*/%s*%3%s*' .. ctag ..')'
 
 --------------------
 -- util functions --
@@ -163,7 +163,7 @@ render_sections =
 			        local x = env[tagname]
 			        local replacement = ''
 
-					if tagmod == '#' then
+					if tagmod == '#' or tagmod == '~' then
 						-- handle boolean-true
 						if x == true then
 							replacement = content
@@ -183,7 +183,7 @@ render_sections =
 						elseif type(x) == 'table' then
 							-- we need to treat every #section as if it has an
 							-- associated array of environments to go with it
-							if is_dict(x) then
+							if tagmod == '~' or is_dict(x) then
 								x = { x }
 							end
 
