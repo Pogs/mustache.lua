@@ -23,7 +23,7 @@ BECAUSE MUSTACHES! >:{
 - Nil/False/Empty-List
 
 ### Extensions
-- {{~section}}once-only even if list{{/section}}
+- {{?section}}printed only once, even if list{{/section}}
 
 ### Todo
 - {{>partials}}
